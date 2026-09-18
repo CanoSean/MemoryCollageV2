@@ -1,0 +1,4440 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#080b14"
+    >
+
+    <title>Our Memories</title>
+
+    <!-- Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+    <style>
+
+        /* =================================================
+           RESET
+        ================================================= */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+
+        html {
+            width: 100%;
+            min-height: 100%;
+            background: #080b14;
+        }
+
+
+        body {
+            width: 100%;
+            min-height: 100vh;
+
+            font-family:
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            color: white;
+
+            background:
+                radial-gradient(
+                    circle at 20% 20%,
+                    rgba(90, 120, 180, 0.16),
+                    transparent 35%
+                ),
+                radial-gradient(
+                    circle at 80% 80%,
+                    rgba(80, 100, 150, 0.12),
+                    transparent 35%
+                ),
+                #080b14;
+
+            overflow: hidden;
+        }
+
+
+        button,
+        input {
+            font-family: inherit;
+        }
+
+
+        button {
+            border: none;
+        }
+
+
+        /* =================================================
+           BACKGROUND
+        ================================================= */
+
+        .background {
+            position: fixed;
+            inset: 0;
+
+            pointer-events: none;
+
+            background:
+                radial-gradient(
+                    circle at 15% 30%,
+                    rgba(100, 140, 210, 0.07),
+                    transparent 32%
+                ),
+                radial-gradient(
+                    circle at 85% 70%,
+                    rgba(150, 170, 220, 0.06),
+                    transparent 32%
+                );
+
+            z-index: 0;
+        }
+
+
+        /* =================================================
+           HEADER
+        ================================================= */
+
+        .header {
+            position: fixed;
+
+            top: 0;
+            left: 0;
+
+            width: 100%;
+
+            display: flex;
+            justify-content: center;
+
+            padding:
+                max(18px, env(safe-area-inset-top))
+                18px
+                18px;
+
+            z-index: 1000;
+
+            pointer-events: none;
+
+            transition:
+                opacity 0.4s ease,
+                transform 0.4s ease;
+        }
+
+
+        .header.hidden {
+            opacity: 0;
+            transform: translateY(-25px);
+            pointer-events: none;
+        }
+
+
+        .header-content {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 2px;
+
+            padding: 5px;
+
+            max-width: 900px;
+
+            border-radius: 50px;
+
+            background:
+                rgba(231, 231, 231, 0.94);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.1);
+
+            box-shadow:
+                0 12px 35px
+                rgba(0, 0, 0, 0.35);
+
+            pointer-events: auto;
+        }
+
+
+        button {
+            padding: 11px 18px;
+
+            border-radius: 28px;
+
+            background: #f4f6fa;
+
+            color: #10131a;
+
+            font-size: 14px;
+            font-weight: 600;
+
+            cursor: pointer;
+
+            transition:
+                transform 0.15s ease,
+                background 0.15s ease;
+        }
+
+
+        button:hover {
+            transform: translateY(-1px);
+        }
+
+
+        button:active {
+            transform: scale(0.97);
+        }
+
+
+        .secondary-button {
+            background:
+                rgba(255, 255, 255, 0.09);
+
+            color: rgb(12, 12, 12);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.1);
+        }
+
+
+        /* =================================================
+           WELCOME
+        ================================================= */
+
+        .welcome {
+            position: fixed;
+            inset: 0;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            text-align: center;
+
+            z-index: 100;
+
+            padding: 25px;
+
+            transition:
+                opacity 0.7s ease,
+                transform 0.7s ease;
+        }
+
+
+        .welcome.hidden {
+            opacity: 0;
+            transform: scale(1.04);
+            pointer-events: none;
+        }
+
+
+        .welcome-content {
+            width: min(700px, 100%);
+        }
+
+
+        .welcome h1 {
+            font-size:
+                clamp(52px, 10vw, 110px);
+
+            font-weight: 200;
+
+            letter-spacing: -5px;
+
+            margin-bottom: 18px;
+
+            background:
+                linear-gradient(
+                    120deg,
+                    #ffffff,
+                    #b9c8ff,
+                    #dce4ff,
+                    #ffffff
+                );
+
+            -webkit-background-clip: text;
+            background-clip: text;
+
+            color: transparent;
+        }
+
+
+        .welcome p {
+            max-width: 550px;
+
+            margin: 0 auto 30px;
+
+            font-size: 17px;
+
+            line-height: 1.6;
+
+            color:
+                rgba(255, 255, 255, 0.62);
+        }
+
+
+        .welcome .hint {
+            margin-top: 18px;
+
+            font-size: 13px;
+
+            color:
+                rgba(255, 255, 255, 0.35);
+        }
+
+
+        /* =================================================
+           MEMORY CANVAS
+        ================================================= */
+
+        #memoryCanvas {
+            position: fixed;
+
+            inset: 0;
+
+            width: 100%;
+            height: 100%;
+
+            z-index: 10;
+
+            overflow: hidden;
+        }
+
+
+        /* =================================================
+           DESKTOP COLLAGE
+        ================================================= */
+
+        .desktop-collage {
+            position: absolute;
+
+            inset: 0;
+
+            width: 100%;
+            height: 100%;
+
+            overflow: hidden;
+        }
+
+
+        /* =================================================
+           DESKTOP MEMORY CARD
+        ================================================= */
+
+        .memory {
+            position: absolute;
+
+            left: 50%;
+            top: 50%;
+
+            width: 230px;
+
+            padding:
+                9px
+                9px
+                15px;
+
+            background:
+                rgba(245, 247, 250, 0.98);
+
+            border-radius: 4px;
+
+            box-shadow:
+                0 16px 40px
+                rgba(0, 0, 0, 0.42);
+
+            color: #161c25;
+
+            opacity: 0;
+
+            user-select: none;
+
+            cursor: grab;
+
+            touch-action: none;
+
+            transform:
+                translate3d(-50%, -50%, 0)
+                rotate(var(--rotation));
+
+            transition:
+                opacity 0.35s ease,
+                box-shadow 0.2s ease;
+        }
+
+
+        .memory.loaded {
+            opacity: 1;
+        }
+
+
+        .memory.dragging {
+            cursor: grabbing;
+
+            transition: none;
+
+            z-index: 9999 !important;
+
+            box-shadow:
+                0 25px 65px
+                rgba(0, 0, 0, 0.65);
+
+            transform:
+                translate3d(
+                    -50%,
+                    -50%,
+                    0
+                )
+                rotate(0deg)
+                scale(1.04);
+        }
+
+
+        .memory:hover:not(.dragging) {
+            z-index: 5000 !important;
+
+            box-shadow:
+                0 22px 50px
+                rgba(0, 0, 0, 0.55);
+        }
+
+
+        .memory img {
+            display: block;
+
+            width: 100%;
+            height: 195px;
+
+            object-fit: cover;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #202638,
+                    #111522
+                );
+
+            pointer-events: none;
+
+            border-radius: 2px;
+
+            user-select: none;
+        }
+
+
+        /* =================================================
+           DESKTOP CAPTION
+        ================================================= */
+
+        .memory-caption {
+            width: 100%;
+
+            padding:
+                10px
+                4px
+                0;
+
+            text-align: center;
+
+            font-family:
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            font-size: 12px;
+
+            line-height: 1.35;
+
+            color:
+                rgba(22, 28, 37, 0.72);
+        }
+
+
+        .memory-caption::before {
+            content: "♥";
+
+            display: block;
+
+            margin-bottom: 3px;
+
+            font-size: 10px;
+
+            color:
+                rgba(70, 90, 140, 0.55);
+        }
+
+
+        /* =================================================
+           MOBILE COLLAGE
+        ================================================= */
+
+        .mobile-collage {
+            display: none;
+        }
+
+
+        .mobile-stack {
+            position: absolute;
+
+            inset: 0;
+
+            display: flex;
+
+            justify-content: center;
+            align-items: center;
+
+            padding:
+                145px
+                18px
+                105px;
+
+            overflow: hidden;
+
+            touch-action: pan-y;
+        }
+
+
+        /* =================================================
+           MOBILE ANNIVERSARY HEADER
+        ================================================= */
+
+        .mobile-anniversary {
+            position: fixed;
+
+            top:
+                max(
+                    78px,
+                    calc(
+                        env(safe-area-inset-top)
+                        + 65px
+                    )
+                );
+
+            left: 50%;
+
+            transform:
+                translateX(-50%);
+
+            width:
+                min(
+                    90vw,
+                    430px
+                );
+
+            text-align: center;
+
+            z-index: 400;
+
+            pointer-events: none;
+        }
+
+
+        .mobile-anniversary-title {
+            margin-bottom: 5px;
+
+            font-size: 17px;
+
+            font-weight: 300;
+
+            letter-spacing: 2px;
+
+            text-transform: uppercase;
+
+            color:
+                rgba(255, 255, 255, 0.86);
+        }
+
+
+        .mobile-anniversary-message {
+            font-size: 12px;
+
+            line-height: 1.45;
+
+            color:
+                rgba(255, 255, 255, 0.42);
+        }
+
+
+        .mobile-heart {
+            margin-bottom: 4px;
+
+            font-size: 15px;
+
+            color:
+                rgba(190, 205, 255, 0.7);
+        }
+
+
+        /* =================================================
+           MOBILE CARD
+        ================================================= */
+
+        .mobile-card {
+            position: absolute;
+
+            width:
+                min(
+                    88vw,
+                    390px
+                );
+
+            max-height:
+                calc(
+                    100vh - 225px
+                );
+
+            padding:
+                9px
+                9px
+                15px;
+
+            background:
+                #f5f7fa;
+
+            border-radius: 5px;
+
+            box-shadow:
+                0 22px 55px
+                rgba(0, 0, 0, 0.55);
+
+            color: #161c25;
+
+            user-select: none;
+
+            cursor: pointer;
+
+            touch-action: pan-y;
+
+            transition:
+                transform 0.35s ease,
+                opacity 0.35s ease,
+                box-shadow 0.2s ease;
+        }
+
+
+        .mobile-card img {
+            display: block;
+
+            width: 100%;
+
+            max-height:
+                calc(
+                    100vh - 300px
+                );
+
+            aspect-ratio: 4 / 5;
+
+            object-fit: cover;
+
+            border-radius: 2px;
+
+            pointer-events: none;
+
+            background: #202638;
+        }
+
+
+        /* =================================================
+           MOBILE CAPTION
+        ================================================= */
+
+        .mobile-caption {
+            padding:
+                9px
+                5px
+                0;
+
+            text-align: center;
+
+            font-size: 12px;
+
+            line-height: 1.35;
+
+            color:
+                rgba(22, 28, 37, 0.72);
+        }
+
+
+        .mobile-caption::before {
+            content: "♥";
+
+            margin-right: 5px;
+
+            font-size: 10px;
+
+            color:
+                rgba(70, 90, 140, 0.55);
+        }
+
+
+        .mobile-card.active {
+            z-index: 100;
+        }
+
+
+        .mobile-card.next {
+            z-index: 90;
+
+            transform:
+                translateY(12px)
+                scale(0.96)
+                rotate(2deg);
+        }
+
+
+        .mobile-card.next-two {
+            z-index: 80;
+
+            transform:
+                translateY(24px)
+                scale(0.92)
+                rotate(-3deg);
+        }
+
+
+        .mobile-card.hidden-card {
+            opacity: 0;
+
+            pointer-events: none;
+
+            transform:
+                translateY(30px)
+                scale(0.88);
+        }
+
+
+        .mobile-card.swiping {
+            transition: none;
+
+            box-shadow:
+                0 28px 70px
+                rgba(0, 0, 0, 0.7);
+        }
+
+
+        /* =================================================
+           MOBILE CONTROLS
+        ================================================= */
+
+        .mobile-counter {
+            position: fixed;
+
+            left: 50%;
+
+            bottom:
+                max(
+                    25px,
+                    calc(
+                        env(safe-area-inset-bottom)
+                        + 13px
+                    )
+                );
+
+            transform:
+                translateX(-50%);
+
+            z-index: 500;
+
+            padding:
+                8px
+                15px;
+
+            border-radius: 30px;
+
+            background:
+                rgba(10, 13, 22, 0.82);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.1);
+
+            color:
+                rgba(255, 255, 255, 0.7);
+
+            font-size: 12px;
+
+            letter-spacing: 2px;
+
+            pointer-events: none;
+        }
+
+
+        .mobile-hint {
+            position: fixed;
+
+            left: 50%;
+
+            bottom:
+                max(
+                    62px,
+                    calc(
+                        env(safe-area-inset-bottom)
+                        + 50px
+                    )
+                );
+
+            transform:
+                translateX(-50%);
+
+            z-index: 500;
+
+            color:
+                rgba(255, 255, 255, 0.38);
+
+            font-size: 11px;
+
+            white-space: nowrap;
+
+            pointer-events: none;
+
+            transition:
+                opacity 0.5s ease;
+        }
+
+
+        .mobile-hint.hidden {
+            opacity: 0;
+        }
+
+
+        /* =================================================
+           MEMORY TITLE
+        ================================================= */
+
+        .memory-title {
+            position: fixed;
+
+            left: 50%;
+            bottom: 28px;
+
+            transform: translateX(-50%);
+
+            z-index: 2800;
+
+            padding: 8px 16px;
+
+            border-radius: 30px;
+
+            background:
+                rgba(10, 13, 22, 0.72);
+
+            color:
+                rgba(255, 255, 255, 0.55);
+
+            font-size: 12px;
+
+            letter-spacing: 3px;
+
+            text-transform: uppercase;
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            transition:
+                opacity 0.5s ease;
+        }
+
+
+        .memory-title.visible {
+            opacity: 1;
+        }
+
+
+        /* =================================================
+           FULLSCREEN
+        ================================================= */
+
+        .fullscreen {
+            position: fixed;
+            inset: 0;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            padding: 20px;
+
+            background:
+                rgba(3, 5, 10, 0.97);
+
+            z-index: 10000;
+
+            animation:
+                fullscreenIn
+                0.2s ease forwards;
+
+            cursor: pointer;
+
+            touch-action: manipulation;
+        }
+
+
+        .fullscreen img {
+            display: block;
+
+            max-width: 94vw;
+            max-height: 90vh;
+
+            width: auto;
+            height: auto;
+
+            object-fit: contain;
+
+            border-radius: 4px;
+
+            box-shadow:
+                0 25px 80px
+                rgba(0, 0, 0, 0.8);
+        }
+
+
+        @keyframes fullscreenIn {
+
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+
+        }
+
+
+        /* =================================================
+           LOADING
+        ================================================= */
+
+        .loading {
+            position: fixed;
+            inset: 0;
+
+            display: none;
+
+            justify-content: center;
+            align-items: center;
+
+            flex-direction: column;
+
+            gap: 18px;
+
+            background:
+                rgba(6, 9, 16, 0.88);
+
+            z-index: 5000;
+        }
+
+
+        .loading.active {
+            display: flex;
+        }
+
+
+        .spinner {
+            width: 42px;
+            height: 42px;
+
+            border-radius: 50%;
+
+            border:
+                3px solid
+                rgba(255, 255, 255, 0.12);
+
+            border-top-color: white;
+
+            animation:
+                spin
+                0.8s linear infinite;
+        }
+
+
+        @keyframes spin {
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+
+        .loading-text {
+            color:
+                rgba(255, 255, 255, 0.65);
+
+            font-size: 14px;
+        }
+
+
+        /* =================================================
+           MODALS
+        ================================================= */
+
+        .modal {
+            position: fixed;
+            inset: 0;
+
+            display: none;
+
+            justify-content: center;
+            align-items: center;
+
+            padding: 20px;
+
+            background:
+                rgba(0, 0, 0, 0.78);
+
+            z-index: 9000;
+        }
+
+
+        .modal.active {
+            display: flex;
+        }
+
+
+        .modal-content {
+            width:
+                min(
+                    420px,
+                    calc(100vw - 30px)
+                );
+
+            max-height:
+                calc(100vh - 40px);
+
+            overflow-y: auto;
+
+            padding: 30px;
+
+            border-radius: 22px;
+
+            background:
+                #171b28;
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.1);
+
+            box-shadow:
+                0 30px 90px
+                rgba(0, 0, 0, 0.65);
+        }
+
+
+        .modal-content h2 {
+            margin-bottom: 10px;
+
+            font-weight: 300;
+
+            font-size: 25px;
+        }
+
+
+        .modal-content p {
+            margin-bottom: 22px;
+
+            color:
+                rgba(255, 255, 255, 0.58);
+
+            line-height: 1.5;
+        }
+
+
+        .input {
+            display: block;
+
+            width: 100%;
+
+            padding: 14px 15px;
+
+            margin-bottom: 12px;
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.12);
+
+            border-radius: 11px;
+
+            background:
+                rgba(255, 255, 255, 0.06);
+
+            color: white;
+
+            outline: none;
+
+            font-size: 15px;
+        }
+
+
+        .input:focus {
+            border-color:
+                rgba(180, 195, 255, 0.5);
+        }
+
+
+        .modal-actions {
+            display: flex;
+
+            gap: 10px;
+
+            margin-top: 8px;
+        }
+
+
+        .modal-actions button {
+            flex: 1;
+        }
+
+
+        .error-message {
+            min-height: 20px;
+
+            margin-top: 12px;
+
+            color: #ff9da9;
+
+            font-size: 13px;
+
+            line-height: 1.4;
+        }
+
+
+        /* =================================================
+           FOLDERS
+        ================================================= */
+
+        .folder-list {
+            max-height: 50vh;
+
+            overflow-y: auto;
+
+            margin-top: 15px;
+        }
+
+
+        .folder-item {
+            width: 100%;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            padding: 14px;
+
+            margin-bottom: 8px;
+
+            border-radius: 13px;
+
+            background:
+                rgba(255, 255, 255, 0.05);
+
+            border:
+                1px solid
+                rgba(255, 255, 255, 0.07);
+
+            color: white;
+
+            text-align: left;
+
+            cursor: pointer;
+
+            transition:
+                background 0.15s ease;
+        }
+
+
+        .folder-item:hover {
+            background:
+                rgba(255, 255, 255, 0.1);
+        }
+
+
+        .folder-icon {
+            font-size: 21px;
+        }
+
+
+        .empty-message {
+            padding: 25px 10px;
+
+            text-align: center;
+
+            color:
+                rgba(255, 255, 255, 0.48);
+
+            line-height: 1.5;
+        }
+
+
+        /* =================================================
+           UPLOAD
+        ================================================= */
+
+        .upload-section {
+            margin-top: 18px;
+
+            padding-top: 18px;
+
+            border-top:
+                1px solid
+                rgba(255, 255, 255, 0.08);
+        }
+
+
+        .upload-section label {
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-size: 13px;
+
+            color:
+                rgba(255, 255, 255, 0.58);
+        }
+
+
+        .upload-section input {
+            width: 100%;
+
+            padding: 8px;
+
+            color: white;
+
+            font-size: 13px;
+        }
+
+
+        /* =================================================
+           MOBILE
+        ================================================= */
+
+        @media (max-width: 700px) {
+
+            body {
+                overflow: hidden;
+            }
+
+
+            .header {
+                padding:
+                    max(
+                        10px,
+                        env(safe-area-inset-top)
+                    )
+                    10px
+                    10px;
+            }
+
+
+            .header-content {
+                width: 150%;
+
+                max-width: 150%;
+
+                overflow-x: auto;
+
+                justify-content: flex-start;
+
+                border-radius: 14px;
+
+                scrollbar-width: none;
+            }
+
+
+            .header-content::-webkit-scrollbar {
+                display: none;
+            }
+
+
+            .header-content button {
+                flex: 0 0 auto;
+
+                min-height: 42px;
+
+                padding:
+                    10px 14px;
+
+                font-size: 13px;
+            }
+
+
+            .welcome {
+                padding: 25px 20px;
+            }
+
+
+            .welcome h1 {
+                font-size: 58px;
+
+                letter-spacing: -3px;
+            }
+
+
+            .welcome p {
+                font-size: 15px;
+            }
+
+
+            .desktop-collage {
+                display: none;
+            }
+
+
+            .mobile-collage {
+                display: block;
+
+                position: absolute;
+
+                inset: 0;
+
+                overflow: hidden;
+            }
+
+
+            .mobile-stack {
+                display: flex;
+            }
+
+
+            .memory-title {
+                display: none;
+            }
+
+
+            .mobile-card {
+                width:
+                    min(
+                        88vw,
+                        390px
+                    );
+            }
+
+
+            .mobile-card img {
+                max-height:
+                    calc(
+                        100vh - 315px
+                    );
+            }
+
+
+            .mobile-anniversary {
+                top:
+                    max(
+                        77px,
+                        calc(
+                            env(safe-area-inset-top)
+                            + 66px
+                        )
+                    );
+            }
+
+
+            .mobile-anniversary-title {
+                font-size: 15px;
+            }
+
+
+            .mobile-anniversary-message {
+                font-size: 11px;
+
+                max-width: 310px;
+
+                margin: 0 auto;
+            }
+
+
+            /*
+             * Modal becomes bottom sheet.
+             */
+
+            .modal {
+                align-items: flex-end;
+
+                padding: 10px;
+            }
+
+
+            .modal-content {
+                width: 100%;
+
+                max-height:
+                    calc(100vh - 20px);
+
+                padding:
+                    24px 20px;
+
+                border-radius:
+                    22px
+                    22px
+                    12px
+                    12px;
+            }
+
+
+            .modal-actions {
+                flex-direction: column;
+            }
+
+
+            .modal-actions button {
+                width: 100%;
+
+                min-height: 46px;
+            }
+
+
+            .folder-list {
+                max-height: 42vh;
+            }
+
+
+            .fullscreen {
+                padding: 10px;
+            }
+
+
+            .fullscreen img {
+                max-width: 96vw;
+                max-height: 88vh;
+            }
+
+        }
+
+
+        /* =================================================
+           SMALL PHONES
+        ================================================= */
+
+        @media (max-width: 380px) {
+
+            .mobile-card {
+                width: 90vw;
+
+                padding:
+                    7px
+                    7px
+                    13px;
+            }
+
+
+            .mobile-card img {
+                max-height:
+                    calc(
+                        100vh - 315px
+                    );
+            }
+
+
+            .mobile-anniversary-title {
+                font-size: 14px;
+            }
+
+
+            .mobile-anniversary-message {
+                font-size: 10px;
+            }
+
+
+            .welcome h1 {
+                font-size: 50px;
+            }
+
+        }
+
+
+        /* =================================================
+           REDUCED MOTION
+        ================================================= */
+
+        @media (prefers-reduced-motion: reduce) {
+
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+    <div class="background"></div>
+
+
+    <!-- =================================================
+         HEADER
+    ================================================= -->
+
+    <header
+        class="header hidden"
+        id="header"
+    >
+
+        <div class="header-content">
+
+            <button id="chooseFolderButton">
+                📁 Choose Memories
+            </button>
+
+            <button
+                id="newFolderButton"
+                class="secondary-button"
+            >
+                Choose Another
+            </button>
+
+            <button
+                id="logoutButton"
+                class="secondary-button"
+            >
+                Sign Out
+            </button>
+
+        </div>
+
+    </header>
+
+
+    <!-- =================================================
+         WELCOME
+    ================================================= -->
+
+    <section
+        class="welcome"
+        id="welcome"
+    >
+
+        <div class="welcome-content">
+
+            <h1>
+                HAPPY ANNIVERSARY LOVEY
+            </h1>
+
+            <p>
+                A little collection of moments, memories, and pieces of our story.
+            </p>
+
+            <button id="startButton">
+                Begin the Memories
+            </button>
+
+            <div class="hint">
+                Every moment with you is amazing.
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- =================================================
+         MEMORY CANVAS
+    ================================================= -->
+
+    <main id="memoryCanvas"></main>
+
+
+    <!-- =================================================
+         TITLE
+    ================================================= -->
+
+    <div
+        class="memory-title"
+        id="memoryTitle"
+    >
+        Our Memories
+    </div>
+
+
+    <!-- =================================================
+         MOBILE COUNTER
+    ================================================= -->
+
+    <div
+        class="mobile-counter"
+        id="mobileCounter"
+        style="display:none;"
+    >
+        1 / 1
+    </div>
+
+
+    <!-- =================================================
+         MOBILE HINT
+    ================================================= -->
+
+    <div
+        class="mobile-hint"
+        id="mobileHint"
+        style="display:none;"
+    >
+        Swipe left or right to explore
+    </div>
+
+
+    <!-- =================================================
+         LOADING
+    ================================================= -->
+
+    <div
+        class="loading"
+        id="loading"
+    >
+
+        <div class="spinner"></div>
+
+        <div
+            class="loading-text"
+            id="loadingText"
+        >
+            Loading your memories...
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         AUTH MODAL
+    ================================================= -->
+
+    <div
+        class="modal"
+        id="authModal"
+    >
+
+        <div class="modal-content">
+
+            <h2>
+                Welcome
+            </h2>
+
+            <p>
+                Sign in to access your private memories.
+            </p>
+
+            <input
+                class="input"
+                id="emailInput"
+                type="email"
+                placeholder="Email"
+                autocomplete="email"
+            >
+
+            <input
+                class="input"
+                id="passwordInput"
+                type="password"
+                placeholder="Password"
+                autocomplete="current-password"
+            >
+
+            <div class="modal-actions">
+
+                <button id="loginButton">
+                    Sign In
+                </button>
+
+            </div>
+
+            <div
+                class="error-message"
+                id="authError"
+            ></div>
+
+        </div>
+
+    </div>
+
+
+    <!-- =================================================
+         FOLDER MODAL
+    ================================================= -->
+
+    <div
+        class="modal"
+        id="folderModal"
+    >
+
+        <div class="modal-content">
+
+            <h2>
+                Choose Your Memories
+            </h2>
+
+            <p>
+                Select a collection to view.
+            </p>
+
+            <div
+                class="folder-list"
+                id="folderList"
+            >
+
+                <div class="empty-message">
+                    Loading folders...
+                </div>
+
+            </div>
+
+            <div class="upload-section">
+
+                <label>
+                    Upload images
+                </label>
+
+                <input
+                    type="file"
+                    id="uploadInput"
+                    accept="image/*"
+                    multiple
+                >
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+        /* =================================================
+           SUPABASE
+        ================================================= */
+
+        const SUPABASE_URL =
+            "https://yqyslrjzuxnekckricqr.supabase.co";
+
+
+        const SUPABASE_PUBLISHABLE_KEY =
+            "sb_publishable_D0CQrtlPnKTKFprVYJMiPg_EBzFLJ48";
+
+
+        const STORAGE_BUCKET =
+            "memories";
+
+
+        const {
+            createClient
+        } = window.supabase;
+
+
+        const supabaseClient =
+            createClient(
+                SUPABASE_URL,
+                SUPABASE_PUBLISHABLE_KEY
+            );
+
+
+        /* =================================================
+           STATE
+        ================================================= */
+
+        let currentUser = null;
+
+        let currentFolder = null;
+
+        let images = [];
+
+        let mobileIndex = 0;
+
+        let mobileCards = [];
+
+        let desktopDragging = false;
+
+        let desktopStartX = 0;
+
+        let desktopStartY = 0;
+
+        let desktopOriginalLeft = 0;
+
+        let desktopOriginalTop = 0;
+
+        let desktopActiveCard = null;
+
+        let desktopDragged = false;
+
+
+        /* =================================================
+           ANNIVERSARY CAPTIONS
+        ================================================= */
+
+        const anniversaryCaptions = [
+
+            "Another beautiful moment with you.",
+
+            "One more memory I would choose again.",
+
+            "Just us, exactly where I want to be.",
+
+            "A moment worth keeping forever.",
+
+            "Life feels a little better with you in it.",
+
+            "One of my favorite memories with my favorite person.",
+
+            "A little moment from our story.",
+
+            "Some memories become part of who we are.",
+
+            "Still one of those moments that makes me smile.",
+
+            "Together is my favorite place to be.",
+
+            "A memory I will always be grateful for.",
+
+            "Another page in our little love story.",
+
+            "You make ordinary moments feel special.",
+
+            "Here's to us and all the moments in between.",
+
+            "A moment I would happily relive.",
+
+            "Every picture tells a little piece of our story.",
+
+            "Another reason I'm lucky to have you.",
+
+            "The kind of memory I never want to forget.",
+
+            "Just another chapter of us.",
+
+            "Forever grateful for moments like this.",
+
+            "Our story is made of little moments like these.",
+
+            "A snapshot of happiness with you.",
+
+            "One moment, one memory, one more reason to smile.",
+
+            "I wouldn't trade this moment for anything.",
+
+            "Here's to the memories we've made and the ones ahead.",
+
+            "A little reminder of how special you are to me.",
+
+            "Another memory added to our forever.",
+
+            "These are the moments I want to remember.",
+
+            "Us then, us now, and hopefully us forever.",
+
+            "Every moment with you is worth remembering."
+
+        ];
+
+
+        function getAnniversaryCaption(
+            index
+        ) {
+
+            return anniversaryCaptions[
+                index %
+                anniversaryCaptions.length
+            ];
+
+        }
+
+
+        /* =================================================
+           DOM
+        ================================================= */
+
+        const chooseFolderButton =
+            document.getElementById(
+                "chooseFolderButton"
+            );
+
+
+        const startButton =
+            document.getElementById(
+                "startButton"
+            );
+
+
+        const newFolderButton =
+            document.getElementById(
+                "newFolderButton"
+            );
+
+
+        const logoutButton =
+            document.getElementById(
+                "logoutButton"
+            );
+
+
+        const welcome =
+            document.getElementById(
+                "welcome"
+            );
+
+
+        const header =
+            document.getElementById(
+                "header"
+            );
+
+
+        const memoryCanvas =
+            document.getElementById(
+                "memoryCanvas"
+            );
+
+
+        const loading =
+            document.getElementById(
+                "loading"
+            );
+
+
+        const loadingText =
+            document.getElementById(
+                "loadingText"
+            );
+
+
+        const memoryTitle =
+            document.getElementById(
+                "memoryTitle"
+            );
+
+
+        const mobileCounter =
+            document.getElementById(
+                "mobileCounter"
+            );
+
+
+        const mobileHint =
+            document.getElementById(
+                "mobileHint"
+            );
+
+
+        const authModal =
+            document.getElementById(
+                "authModal"
+            );
+
+
+        const folderModal =
+            document.getElementById(
+                "folderModal"
+            );
+
+
+        const emailInput =
+            document.getElementById(
+                "emailInput"
+            );
+
+
+        const passwordInput =
+            document.getElementById(
+                "passwordInput"
+            );
+
+
+        const authError =
+            document.getElementById(
+                "authError"
+            );
+
+
+        const loginButton =
+            document.getElementById(
+                "loginButton"
+            );
+
+
+        const signupButton =
+            document.getElementById(
+                "signupButton"
+            );
+
+
+        const folderList =
+            document.getElementById(
+                "folderList"
+            );
+
+
+        const uploadInput =
+            document.getElementById(
+                "uploadInput"
+            );
+
+
+        /* =================================================
+           LOADING
+        ================================================= */
+
+        function showLoading(message) {
+
+            loadingText.textContent =
+                message;
+
+            loading.classList.add(
+                "active"
+            );
+
+        }
+
+
+        function hideLoading() {
+
+            loading.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        /* =================================================
+           MODALS
+        ================================================= */
+
+        function openAuthModal() {
+
+            authError.textContent = "";
+
+            authModal.classList.add(
+                "active"
+            );
+
+        }
+
+
+        function closeAuthModal() {
+
+            authModal.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        function openFolderModal() {
+
+            folderModal.classList.add(
+                "active"
+            );
+
+        }
+
+
+        function closeFolderModal() {
+
+            folderModal.classList.remove(
+                "active"
+            );
+
+        }
+
+
+        /* =================================================
+           LOGIN
+        ================================================= */
+
+        async function login() {
+
+            const email =
+                emailInput.value.trim();
+
+
+            const password =
+                passwordInput.value;
+
+
+            if (!email || !password) {
+
+                authError.textContent =
+                    "Please enter your email and password.";
+
+                return;
+
+            }
+
+
+            authError.textContent = "";
+
+            showLoading(
+                "Signing in..."
+            );
+
+
+            const {
+                error
+            } =
+                await supabaseClient.auth
+                    .signInWithPassword({
+                        email,
+                        password
+                    });
+
+
+            hideLoading();
+
+
+            if (error) {
+
+                authError.textContent =
+                    error.message;
+
+                return;
+
+            }
+
+
+            closeAuthModal();
+
+            await initializeApplication();
+
+        }
+
+
+        /* =================================================
+           SIGN UP
+        ================================================= */
+
+        async function signup() {
+
+            const email =
+                emailInput.value.trim();
+
+
+            const password =
+                passwordInput.value;
+
+
+            if (!email || !password) {
+
+                authError.textContent =
+                    "Please enter an email and password.";
+
+                return;
+
+            }
+
+
+            if (password.length < 6) {
+
+                authError.textContent =
+                    "Password must be at least 6 characters.";
+
+                return;
+
+            }
+
+
+            authError.textContent = "";
+
+            showLoading(
+                "Creating your account..."
+            );
+
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient.auth
+                    .signUp({
+                        email,
+                        password
+                    });
+
+
+            hideLoading();
+
+
+            if (error) {
+
+                authError.textContent =
+                    error.message;
+
+                return;
+
+            }
+
+
+            if (
+                data.user &&
+                !data.session
+            ) {
+
+                authError.textContent =
+                    "Account created. Check your email to confirm your account.";
+
+                return;
+
+            }
+
+
+            closeAuthModal();
+
+            await initializeApplication();
+
+        }
+
+
+        /* =================================================
+           CLEAR MEMORIES
+        ================================================= */
+
+        function clearMemories(
+            resetImages = false
+        ) {
+
+            memoryCanvas.innerHTML = "";
+
+            mobileCards = [];
+
+            mobileIndex = 0;
+
+            mobileCounter.style.display =
+                "none";
+
+            mobileHint.style.display =
+                "none";
+
+
+            if (resetImages) {
+
+                images = [];
+
+            }
+
+        }
+
+
+        /* =================================================
+           LOGOUT
+        ================================================= */
+
+        async function logout() {
+
+            await supabaseClient.auth.signOut();
+
+
+            currentUser = null;
+
+            currentFolder = null;
+
+            clearMemories(true);
+
+
+            header.classList.add(
+                "hidden"
+            );
+
+
+            welcome.classList.remove(
+                "hidden"
+            );
+
+
+            memoryTitle.classList.remove(
+                "visible"
+            );
+
+        }
+
+
+        /* =================================================
+           INITIALIZE
+        ================================================= */
+
+        async function initializeApplication() {
+
+            const {
+                data
+            } =
+                await supabaseClient.auth
+                    .getUser();
+
+
+            currentUser =
+                data.user;
+
+
+            if (!currentUser) {
+
+                return;
+
+            }
+
+
+            header.classList.remove(
+                "hidden"
+            );
+
+
+            await loadFolders();
+
+        }
+
+
+        /* =================================================
+           LOAD FOLDERS
+        ================================================= */
+
+        async function loadFolders() {
+
+            if (!currentUser) {
+
+                openAuthModal();
+
+                return;
+
+            }
+
+
+            openFolderModal();
+
+
+            folderList.innerHTML =
+                `
+                    <div class="empty-message">
+                        Loading your folders...
+                    </div>
+                `;
+
+
+            const userPath =
+                currentUser.id;
+
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient.storage
+                    .from(STORAGE_BUCKET)
+                    .list(
+                        userPath,
+                        {
+                            limit: 100,
+
+                            sortBy: {
+                                column: "name",
+                                order: "asc"
+                            }
+                        }
+                    );
+
+
+            if (error) {
+
+                console.error(error);
+
+
+                folderList.innerHTML =
+                    `
+                        <div class="empty-message">
+                            Unable to load folders.
+                            <br><br>
+                            ${escapeHTML(
+                                error.message
+                            )}
+                        </div>
+                    `;
+
+                return;
+
+            }
+
+
+            const folders =
+                (data || []).filter(
+                    item =>
+                        !item.metadata
+                );
+
+
+            if (
+                folders.length === 0
+            ) {
+
+                folderList.innerHTML =
+                    `
+                        <div class="empty-message">
+                            No memory folders yet.
+                            <br><br>
+                            Upload your first images below.
+                        </div>
+                    `;
+
+                return;
+
+            }
+
+
+            folderList.innerHTML = "";
+
+
+            folders.forEach(
+                folder => {
+
+                    const button =
+                        document.createElement(
+                            "button"
+                        );
+
+
+                    button.className =
+                        "folder-item";
+
+
+                    button.innerHTML =
+                        `
+                            <span class="folder-icon">
+                                📁
+                            </span>
+
+                            <span>
+                                ${escapeHTML(
+                                    folder.name
+                                )}
+                            </span>
+                        `;
+
+
+                    button.addEventListener(
+                        "click",
+                        () => {
+
+                            selectFolder(
+                                folder.name
+                            );
+
+                        }
+                    );
+
+
+                    folderList.appendChild(
+                        button
+                    );
+
+                }
+            );
+
+        }
+
+
+        /* =================================================
+           SELECT FOLDER
+        ================================================= */
+
+        async function selectFolder(
+            folderName
+        ) {
+
+            currentFolder =
+                folderName;
+
+
+            closeFolderModal();
+
+
+            await loadImagesFromFolder(
+                folderName
+            );
+
+        }
+
+
+        /* =================================================
+           LOAD IMAGES
+        ================================================= */
+
+        async function loadImagesFromFolder(
+            folderName
+        ) {
+
+            clearMemories();
+
+            showLoading(
+                "Finding your memories..."
+            );
+
+
+            try {
+
+                const folderPath =
+                    `${currentUser.id}/${folderName}`;
+
+
+                const {
+                    data,
+                    error
+                } =
+                    await supabaseClient.storage
+                        .from(STORAGE_BUCKET)
+                        .list(
+                            folderPath,
+                            {
+                                limit: 1000,
+
+                                sortBy: {
+                                    column: "created_at",
+                                    order: "asc"
+                                }
+                            }
+                        );
+
+
+                if (error) {
+
+                    throw error;
+
+                }
+
+
+                const files =
+                    (data || []).filter(
+                        file =>
+                            file.metadata &&
+                            file.metadata.mimetype &&
+                            file.metadata.mimetype
+                                .startsWith(
+                                    "image/"
+                                )
+                    );
+
+
+                if (
+                    files.length === 0
+                ) {
+
+                    hideLoading();
+
+
+                    alert(
+                        "There are no images in this folder."
+                    );
+
+                    return;
+
+                }
+
+
+                images = files;
+
+
+                await createMemories();
+
+            }
+
+            catch (error) {
+
+                console.error(error);
+
+                hideLoading();
+
+
+                alert(
+                    "There was a problem loading your memories."
+                );
+
+            }
+
+        }
+
+
+        /* =================================================
+           SIGNED URL
+        ================================================= */
+
+        async function createImageURL(
+            fileName
+        ) {
+
+            const path =
+                `${currentUser.id}/${currentFolder}/${fileName}`;
+
+
+            const {
+                data,
+                error
+            } =
+                await supabaseClient.storage
+                    .from(STORAGE_BUCKET)
+                    .createSignedUrl(
+                        path,
+                        3600
+                    );
+
+
+            if (error) {
+
+                throw error;
+
+            }
+
+
+            return data.signedUrl;
+
+        }
+
+
+        /* =================================================
+           CREATE MEMORIES
+        ================================================= */
+
+        async function createMemories() {
+
+            clearMemories(false);
+
+
+            welcome.classList.add(
+                "hidden"
+            );
+
+
+            header.classList.add(
+                "hidden"
+            );
+
+
+            showLoading(
+                `Loading ${images.length} memories...`
+            );
+
+
+            const isMobile =
+                window.matchMedia(
+                    "(max-width: 700px)"
+                ).matches;
+
+
+            const collage =
+                document.createElement(
+                    "div"
+                );
+
+
+            if (isMobile) {
+
+                collage.className =
+                    "mobile-collage";
+
+
+                /*
+                 * Mobile anniversary
+                 * introduction.
+                 */
+
+                const anniversaryHeader =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                anniversaryHeader.className =
+                    "mobile-anniversary";
+
+
+                anniversaryHeader.innerHTML =
+                    `
+                        <div class="mobile-heart">
+                            ♥
+                        </div>
+
+                        <div class="mobile-anniversary-title">
+                            Our Little Story
+                        </div>
+
+                        <div class="mobile-anniversary-message">
+                            Every photo holds a moment,
+                            and every moment is a piece of us.
+                        </div>
+                    `;
+
+
+                collage.appendChild(
+                    anniversaryHeader
+                );
+
+
+                const stack =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                stack.className =
+                    "mobile-stack";
+
+
+                collage.appendChild(
+                    stack
+                );
+
+
+                memoryCanvas.appendChild(
+                    collage
+                );
+
+
+                await createMobileMemories(
+                    stack
+                );
+
+            }
+
+            else {
+
+                collage.className =
+                    "desktop-collage";
+
+
+                memoryCanvas.appendChild(
+                    collage
+                );
+
+
+                await createDesktopMemories(
+                    collage
+                );
+
+            }
+
+
+            hideLoading();
+
+
+            memoryTitle.classList.add(
+                "visible"
+            );
+
+
+            header.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        /* =================================================
+           DESKTOP MEMORIES
+        ================================================= */
+
+        async function createDesktopMemories(
+            collage
+        ) {
+
+            const batchSize = 6;
+
+
+            for (
+                let i = 0;
+                i < images.length;
+                i += batchSize
+            ) {
+
+                const batch =
+                    images.slice(
+                        i,
+                        i + batchSize
+                    );
+
+
+                await Promise.all(
+                    batch.map(
+                        (
+                            file,
+                            index
+                        ) =>
+                            createDesktopMemory(
+                                file,
+                                i + index,
+                                collage
+                            )
+                    )
+                );
+
+
+                loadingText.textContent =
+                    `Loading ${
+                        Math.min(
+                            i + batchSize,
+                            images.length
+                        )
+                    } / ${
+                        images.length
+                    } memories`;
+
+
+                await new Promise(
+                    resolve =>
+                        setTimeout(
+                            resolve,
+                            0
+                        )
+                );
+
+            }
+
+        }
+
+
+        /* =================================================
+           CREATE DESKTOP MEMORY
+        ================================================= */
+
+        async function createDesktopMemory(
+            file,
+            index,
+            collage
+        ) {
+
+            try {
+
+                const imageURL =
+                    await createImageURL(
+                        file.name
+                    );
+
+
+                const card =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                card.className =
+                    "memory";
+
+
+                const x =
+                    10 +
+                    Math.random() * 80;
+
+
+                const y =
+                    15 +
+                    Math.random() * 70;
+
+
+                const rotation =
+                    -10 +
+                    Math.random() * 20;
+
+
+                card.style.left =
+                    `${x}%`;
+
+
+                card.style.top =
+                    `${y}%`;
+
+
+                card.style.setProperty(
+                    "--rotation",
+                    `${rotation}deg`
+                );
+
+
+                card.style.zIndex =
+                    String(
+                        10 + index
+                    );
+
+
+                const image =
+                    document.createElement(
+                        "img"
+                    );
+
+
+                image.src =
+                    imageURL;
+
+
+                image.alt =
+                    file.name;
+
+
+                image.loading =
+                    index < 6
+                        ? "eager"
+                        : "lazy";
+
+
+                image.decoding =
+                    "async";
+
+
+                card.appendChild(
+                    image
+                );
+
+
+                /*
+                 * Anniversary caption.
+                 */
+
+                const caption =
+                    document.createElement(
+                        "div"
+                    );
+
+
+                caption.className =
+                    "memory-caption";
+
+
+                caption.textContent =
+                    getAnniversaryCaption(
+                        index
+                    );
+
+
+                card.appendChild(
+                    caption
+                );
+
+
+                setupDesktopDragging(
+                    card
+                );
+
+
+                card.addEventListener(
+                    "dblclick",
+                    event => {
+
+                        event.preventDefault();
+
+                        showFullscreen(
+                            imageURL
+                        );
+
+                    }
+                );
+
+
+                collage.appendChild(
+                    card
+                );
+
+
+                requestAnimationFrame(
+                    () => {
+
+                        card.classList.add(
+                            "loaded"
+                        );
+
+                    }
+                );
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Unable to load:",
+                    file.name,
+                    error
+                );
+
+            }
+
+        }
+
+
+        /* =================================================
+           DESKTOP DRAGGING
+        ================================================= */
+
+        function setupDesktopDragging(
+            card
+        ) {
+
+            card.addEventListener(
+                "pointerdown",
+                event => {
+
+                    if (
+                        window.innerWidth <= 700
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    if (
+                        event.button !== 0 &&
+                        event.pointerType === "mouse"
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    event.preventDefault();
+
+
+                    desktopDragging =
+                        true;
+
+
+                    desktopDragged =
+                        false;
+
+
+                    desktopActiveCard =
+                        card;
+
+
+                    desktopStartX =
+                        event.clientX;
+
+
+                    desktopStartY =
+                        event.clientY;
+
+
+                    const rect =
+                        card.getBoundingClientRect();
+
+
+                    desktopOriginalLeft =
+                        rect.left +
+                        rect.width / 2;
+
+
+                    desktopOriginalTop =
+                        rect.top +
+                        rect.height / 2;
+
+
+                    card.setPointerCapture(
+                        event.pointerId
+                    );
+
+
+                    card.classList.add(
+                        "dragging"
+                    );
+
+
+                    card.style.zIndex =
+                        "9999";
+
+                }
+            );
+
+
+            card.addEventListener(
+                "pointermove",
+                event => {
+
+                    if (
+                        !desktopDragging ||
+                        desktopActiveCard !== card
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    const deltaX =
+                        event.clientX -
+                        desktopStartX;
+
+
+                    const deltaY =
+                        event.clientY -
+                        desktopStartY;
+
+
+                    if (
+                        Math.abs(deltaX) > 5 ||
+                        Math.abs(deltaY) > 5
+                    ) {
+
+                        desktopDragged =
+                            true;
+
+                    }
+
+
+                    const newX =
+                        desktopOriginalLeft +
+                        deltaX;
+
+
+                    const newY =
+                        desktopOriginalTop +
+                        deltaY;
+
+
+                    const xPercent =
+                        (
+                            newX /
+                            window.innerWidth
+                        ) * 100;
+
+
+                    const yPercent =
+                        (
+                            newY /
+                            window.innerHeight
+                        ) * 100;
+
+
+                    card.style.left =
+                        `${xPercent}%`;
+
+
+                    card.style.top =
+                        `${yPercent}%`;
+
+                }
+            );
+
+
+            card.addEventListener(
+                "pointerup",
+                event => {
+
+                    if (
+                        desktopActiveCard !== card
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    desktopDragging =
+                        false;
+
+
+                    card.classList.remove(
+                        "dragging"
+                    );
+
+
+                    try {
+
+                        card.releasePointerCapture(
+                            event.pointerId
+                        );
+
+                    }
+
+                    catch (_) {}
+
+
+                    desktopActiveCard =
+                        null;
+
+                }
+            );
+
+
+            card.addEventListener(
+                "pointercancel",
+                () => {
+
+                    desktopDragging =
+                        false;
+
+
+                    card.classList.remove(
+                        "dragging"
+                    );
+
+
+                    desktopActiveCard =
+                        null;
+
+                }
+            );
+
+        }
+
+
+        /* =================================================
+           MOBILE MEMORIES
+        ================================================= */
+
+        async function createMobileMemories(
+            stack
+        ) {
+
+            mobileCards = [];
+
+
+            for (
+                let i = 0;
+                i < images.length;
+                i++
+            ) {
+
+                const file =
+                    images[i];
+
+
+                try {
+
+                    const imageURL =
+                        await createImageURL(
+                            file.name
+                        );
+
+
+                    const card =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    card.className =
+                        "mobile-card";
+
+
+                    const image =
+                        document.createElement(
+                            "img"
+                        );
+
+
+                    image.src =
+                        imageURL;
+
+
+                    image.alt =
+                        file.name;
+
+
+                    image.loading =
+                        i < 3
+                            ? "eager"
+                            : "lazy";
+
+
+                    image.decoding =
+                        "async";
+
+
+                    card.appendChild(
+                        image
+                    );
+
+
+                    /*
+                     * Anniversary caption.
+                     */
+
+                    const caption =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    caption.className =
+                        "mobile-caption";
+
+
+                    caption.textContent =
+                        getAnniversaryCaption(
+                            i
+                        );
+
+
+                    card.appendChild(
+                        caption
+                    );
+
+
+                    card.dataset.url =
+                        imageURL;
+
+
+                    setupMobileCard(
+                        card
+                    );
+
+
+                    stack.appendChild(
+                        card
+                    );
+
+
+                    mobileCards.push(
+                        card
+                    );
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        "Unable to load:",
+                        file.name,
+                        error
+                    );
+
+                }
+
+
+                loadingText.textContent =
+                    `Loading ${
+                        i + 1
+                    } / ${
+                        images.length
+                    } memories`;
+
+
+                if (
+                    i % 4 === 3
+                ) {
+
+                    await new Promise(
+                        resolve =>
+                            setTimeout(
+                                resolve,
+                                0
+                            )
+                    );
+
+                }
+
+            }
+
+
+            mobileIndex = 0;
+
+            updateMobileStack();
+
+
+            mobileCounter.style.display =
+                "block";
+
+
+            mobileHint.style.display =
+                "block";
+
+        }
+
+
+        /* =================================================
+           MOBILE CARD TOUCH / SWIPE
+        ================================================= */
+
+        function setupMobileCard(
+            card
+        ) {
+
+            let startX = 0;
+
+            let startY = 0;
+
+            let currentX = 0;
+
+            let moved = false;
+
+            let horizontalSwipe = false;
+
+
+            card.addEventListener(
+                "pointerdown",
+                event => {
+
+                    if (
+                        !card.classList.contains(
+                            "active"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    startX =
+                        event.clientX;
+
+
+                    startY =
+                        event.clientY;
+
+
+                    currentX =
+                        0;
+
+
+                    moved =
+                        false;
+
+
+                    horizontalSwipe =
+                        false;
+
+
+                    card.classList.add(
+                        "swiping"
+                    );
+
+
+                    card.setPointerCapture(
+                        event.pointerId
+                    );
+
+                }
+            );
+
+
+            card.addEventListener(
+                "pointermove",
+                event => {
+
+                    if (
+                        !card.classList.contains(
+                            "swiping"
+                        )
+                    ) {
+
+                        return;
+
+                    }
+
+
+                    currentX =
+                        event.clientX -
+                        startX;
+
+
+                    const currentY =
+                        event.clientY -
+                        startY;
+
+
+                    if (
+                        Math.abs(currentX) > 8
+                    ) {
+
+                        moved =
+                            true;
+
+                    }
+
+
+                    if (
+                        Math.abs(currentX) >
+                        Math.abs(currentY)
+                    ) {
+
+                        horizontalSwipe =
+                            true;
+
+                        event.preventDefault();
+
+
+                        const rotation =
+                            currentX / 18;
+
+
+                        card.style.transform =
+                            `
+                                translateX(
+                                    ${currentX}px
+                                )
+                                rotate(
+                                    ${rotation}deg
+                                )
+                            `;
+
+                    }
+
+                }
+            );
+
+
+            card.addEventListener(
+                "pointerup",
+                event => {
+
+                    card.classList.remove(
+                        "swiping"
+                    );
+
+
+                    try {
+
+                        card.releasePointerCapture(
+                            event.pointerId
+                        );
+
+                    }
+
+                    catch (_) {}
+
+
+                    if (
+                        currentX < -80
+                    ) {
+
+                        swipeToNext(
+                            "left"
+                        );
+
+                        return;
+
+                    }
+
+
+                    if (
+                        currentX > 80
+                    ) {
+
+                        swipeToNext(
+                            "right"
+                        );
+
+                        return;
+
+                    }
+
+
+                    if (!moved) {
+
+                        showFullscreen(
+                            card.dataset.url
+                        );
+
+                    }
+
+
+                    card.style.transform =
+                        "";
+
+                }
+            );
+
+
+            card.addEventListener(
+                "pointercancel",
+                () => {
+
+                    card.classList.remove(
+                        "swiping"
+                    );
+
+                    card.style.transform =
+                        "";
+
+                }
+            );
+
+        }
+
+
+        /* =================================================
+           SWIPE TO NEXT
+        ================================================= */
+
+        function swipeToNext(
+            direction
+        ) {
+
+            if (
+                mobileCards.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            const currentCard =
+                mobileCards[
+                    mobileIndex
+                ];
+
+
+            const distance =
+                window.innerWidth *
+                1.2;
+
+
+            const finalX =
+                direction === "left"
+                    ? -distance
+                    : distance;
+
+
+            currentCard.style.transition =
+                "transform 0.35s ease, opacity 0.35s ease";
+
+
+            currentCard.style.transform =
+                `
+                    translateX(
+                        ${finalX}px
+                    )
+                    rotate(
+                        ${direction === "left"
+                            ? -18
+                            : 18
+                        }deg
+                    )
+                `;
+
+
+            currentCard.style.opacity =
+                "0";
+
+
+            setTimeout(
+                () => {
+
+                    currentCard.style.display =
+                        "none";
+
+
+                    /*
+                     * Left = next.
+                     * Right = previous.
+                     */
+
+                    if (
+                        direction === "left"
+                    ) {
+
+                        mobileIndex++;
+
+                    }
+
+                    else {
+
+                        mobileIndex--;
+
+                    }
+
+
+                    /*
+                     * Loop around.
+                     */
+
+                    if (
+                        mobileIndex >=
+                        mobileCards.length
+                    ) {
+
+                        mobileIndex = 0;
+
+                    }
+
+
+                    if (
+                        mobileIndex < 0
+                    ) {
+
+                        mobileIndex =
+                            mobileCards.length - 1;
+
+                    }
+
+
+                    mobileCards.forEach(
+                        card => {
+
+                            card.style.display =
+                                "";
+
+                            card.style.opacity =
+                                "";
+
+                            card.style.transition =
+                                "";
+
+                            card.style.transform =
+                                "";
+
+                        }
+                    );
+
+
+                    updateMobileStack();
+
+                },
+                350
+            );
+
+        }
+
+
+        /* =================================================
+           UPDATE MOBILE STACK
+        ================================================= */
+
+        function updateMobileStack() {
+
+            if (
+                mobileCards.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            mobileCards.forEach(
+                (
+                    card,
+                    index
+                ) => {
+
+                    card.classList.remove(
+                        "active",
+                        "next",
+                        "next-two",
+                        "hidden-card"
+                    );
+
+
+                    const relative =
+                        (
+                            index -
+                            mobileIndex +
+                            mobileCards.length
+                        ) %
+                        mobileCards.length;
+
+
+                    if (
+                        relative === 0
+                    ) {
+
+                        card.classList.add(
+                            "active"
+                        );
+
+
+                        card.style.display =
+                            "";
+
+                        card.style.opacity =
+                            "1";
+
+                        card.style.transform =
+                            "";
+
+                    }
+
+                    else if (
+                        relative === 1
+                    ) {
+
+                        card.classList.add(
+                            "next"
+                        );
+
+
+                        card.style.display =
+                            "";
+
+                        card.style.opacity =
+                            "1";
+
+                    }
+
+                    else if (
+                        relative === 2
+                    ) {
+
+                        card.classList.add(
+                            "next-two"
+                        );
+
+
+                        card.style.display =
+                            "";
+
+                        card.style.opacity =
+                            "1";
+
+                    }
+
+                    else {
+
+                        card.classList.add(
+                            "hidden-card"
+                        );
+
+                    }
+
+                }
+            );
+
+
+            mobileCounter.textContent =
+                `${mobileIndex + 1} / ${mobileCards.length}`;
+
+
+            /*
+             * Hide hint after the first
+             * swipe.
+             */
+
+            if (
+                mobileIndex !== 0
+            ) {
+
+                mobileHint.classList.add(
+                    "hidden"
+                );
+
+            }
+
+        }
+
+
+        /* =================================================
+           FULLSCREEN
+        ================================================= */
+
+        function showFullscreen(
+            imageURL
+        ) {
+
+            const existing =
+                document.querySelector(
+                    ".fullscreen"
+                );
+
+
+            if (existing) {
+
+                existing.remove();
+
+            }
+
+
+            const overlay =
+                document.createElement(
+                    "div"
+                );
+
+
+            overlay.className =
+                "fullscreen";
+
+
+            const image =
+                document.createElement(
+                    "img"
+                );
+
+
+            image.src =
+                imageURL;
+
+
+            image.alt =
+                "Memory";
+
+
+            image.decoding =
+                "async";
+
+
+            overlay.appendChild(
+                image
+            );
+
+
+            overlay.addEventListener(
+                "click",
+                () => {
+
+                    overlay.remove();
+
+                }
+            );
+
+
+            document.body.appendChild(
+                overlay
+            );
+
+        }
+
+
+        /* =================================================
+           UPLOAD
+        ================================================= */
+
+        uploadInput.addEventListener(
+            "change",
+            async event => {
+
+                if (!currentUser) {
+
+                    return;
+
+                }
+
+
+                const files =
+                    Array.from(
+                        event.target.files
+                    );
+
+
+                if (
+                    files.length === 0
+                ) {
+
+                    return;
+
+                }
+
+
+                const folderInput =
+                    prompt(
+                        "Enter a folder name for these memories:",
+                        "Memories"
+                    );
+
+
+                if (!folderInput) {
+
+                    uploadInput.value =
+                        "";
+
+                    return;
+
+                }
+
+
+                const folderName =
+                    sanitizeFolderName(
+                        folderInput
+                    );
+
+
+                if (!folderName) {
+
+                    alert(
+                        "Please enter a valid folder name."
+                    );
+
+                    uploadInput.value =
+                        "";
+
+                    return;
+
+                }
+
+
+                showLoading(
+                    `Uploading ${files.length} photos...`
+                );
+
+
+                try {
+
+                    for (
+                        let i = 0;
+                        i < files.length;
+                        i++
+                    ) {
+
+                        const file =
+                            files[i];
+
+
+                        if (
+                            !file.type.startsWith(
+                                "image/"
+                            )
+                        ) {
+
+                            continue;
+
+                        }
+
+
+                        const safeOriginalName =
+                            file.name
+                                .replace(
+                                    /[\\/]+/g,
+                                    "_"
+                                )
+                                .replace(
+                                    /[^a-zA-Z0-9._-]/g,
+                                    "_"
+                                );
+
+
+                        const safeFileName =
+                            `${crypto.randomUUID()}-${safeOriginalName}`;
+
+
+                        const path =
+                            `${currentUser.id}/${folderName}/${safeFileName}`;
+
+
+                        const {
+                            error
+                        } =
+                            await supabaseClient
+                                .storage
+                                .from(
+                                    STORAGE_BUCKET
+                                )
+                                .upload(
+                                    path,
+                                    file,
+                                    {
+                                        cacheControl:
+                                            "3600",
+
+                                        upsert:
+                                            false
+                                    }
+                                );
+
+
+                        if (error) {
+
+                            throw error;
+
+                        }
+
+
+                        loadingText.textContent =
+                            `Uploading ${
+                                i + 1
+                            } / ${
+                                files.length
+                            }`;
+
+                    }
+
+
+                    hideLoading();
+
+                    uploadInput.value =
+                        "";
+
+                    await loadFolders();
+
+
+                    alert(
+                        "Your memories have been uploaded."
+                    );
+
+                }
+
+                catch (error) {
+
+                    console.error(
+                        error
+                    );
+
+
+                    hideLoading();
+
+
+                    alert(
+                        `Upload failed: ${error.message}`
+                    );
+
+                }
+
+            }
+        );
+
+
+        /* =================================================
+           SANITIZE FOLDER
+        ================================================= */
+
+        function sanitizeFolderName(
+            value
+        ) {
+
+            return String(value)
+                .trim()
+                .replace(
+                    /[\\/]+/g,
+                    "-"
+                )
+                .replace(
+                    /[^a-zA-Z0-9 _.-]/g,
+                    ""
+                )
+                .replace(
+                    /\s+/g,
+                    " "
+                )
+                .slice(
+                    0,
+                    80
+                );
+
+        }
+
+
+        /* =================================================
+           ESCAPE HTML
+        ================================================= */
+
+        function escapeHTML(
+            value
+        ) {
+
+            return String(value)
+                .replace(
+                    /&/g,
+                    "&amp;"
+                )
+                .replace(
+                    /</g,
+                    "&lt;"
+                )
+                .replace(
+                    />/g,
+                    "&gt;"
+                )
+                .replace(
+                    /"/g,
+                    "&quot;"
+                )
+                .replace(
+                    /'/g,
+                    "&#039;"
+                );
+
+        }
+
+
+        /* =================================================
+           BUTTON EVENTS
+        ================================================= */
+
+        startButton.addEventListener(
+            "click",
+            async () => {
+
+                if (!currentUser) {
+
+                    openAuthModal();
+
+                    return;
+
+                }
+
+
+                await loadFolders();
+
+            }
+        );
+
+
+        chooseFolderButton.addEventListener(
+            "click",
+            async () => {
+
+                if (!currentUser) {
+
+                    openAuthModal();
+
+                    return;
+
+                }
+
+
+                await loadFolders();
+
+            }
+        );
+
+
+        newFolderButton.addEventListener(
+            "click",
+            async () => {
+
+                clearMemories();
+
+                await loadFolders();
+
+            }
+        );
+
+
+        logoutButton.addEventListener(
+            "click",
+            logout
+        );
+
+
+        loginButton.addEventListener(
+            "click",
+            login
+        );
+
+
+        signupButton.addEventListener(
+            "click",
+            signup
+        );
+
+
+        /* =================================================
+           ENTER TO LOGIN
+        ================================================= */
+
+        passwordInput.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    login();
+
+                }
+
+            }
+        );
+
+
+        emailInput.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    passwordInput.focus();
+
+                }
+
+            }
+        );
+
+
+        /* =================================================
+           ESCAPE
+        ================================================= */
+
+        document.addEventListener(
+            "keydown",
+            event => {
+
+                if (
+                    event.key !== "Escape"
+                ) {
+
+                    return;
+
+                }
+
+
+                const fullscreen =
+                    document.querySelector(
+                        ".fullscreen"
+                    );
+
+
+                if (fullscreen) {
+
+                    fullscreen.remove();
+
+                }
+
+
+                closeAuthModal();
+
+                closeFolderModal();
+
+            }
+        );
+
+
+        /* =================================================
+           RESIZE
+        ================================================= */
+
+        let resizeTimeout = null;
+
+        let lastMobileState =
+            window.matchMedia(
+                "(max-width: 700px)"
+            ).matches;
+
+
+        window.addEventListener(
+            "resize",
+            () => {
+
+                clearTimeout(
+                    resizeTimeout
+                );
+
+
+                resizeTimeout =
+                    setTimeout(
+                        () => {
+
+                            const newMobileState =
+                                window.matchMedia(
+                                    "(max-width: 700px)"
+                                ).matches;
+
+
+                            /*
+                             * Only rebuild when the
+                             * layout actually changes
+                             * between desktop/mobile.
+                             */
+
+                            if (
+                                images.length > 0 &&
+                                currentFolder &&
+                                newMobileState !==
+                                    lastMobileState
+                            ) {
+
+                                lastMobileState =
+                                    newMobileState;
+
+
+                                createMemories();
+
+                            }
+
+                        },
+                        300
+                    );
+
+            }
+        );
+
+
+        /* =================================================
+           INITIALIZATION
+        ================================================= */
+
+        async function initialize() {
+
+            try {
+
+                const {
+                    data
+                } =
+                    await supabaseClient.auth
+                        .getSession();
+
+
+                if (
+                    data.session
+                ) {
+
+                    currentUser =
+                        data.session.user;
+
+
+                    await initializeApplication();
+
+                }
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Initialization error:",
+                    error
+                );
+
+            }
+
+        }
+
+
+        /* =================================================
+           AUTH STATE
+        ================================================= */
+
+        supabaseClient.auth.onAuthStateChange(
+            (
+                event,
+                session
+            ) => {
+
+                if (
+                    session &&
+                    session.user
+                ) {
+
+                    currentUser =
+                        session.user;
+
+                }
+
+                else {
+
+                    currentUser =
+                        null;
+
+                }
+
+            }
+        );
+
+
+        /* =================================================
+           START
+        ================================================= */
+
+        initialize();
+
+    </script>
+
+</body>
+
+</html>
