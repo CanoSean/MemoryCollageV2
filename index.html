@@ -144,7 +144,6 @@
 
 
         .header-content {
-
             display: flex;
 
             align-items: center;
@@ -331,6 +330,8 @@
             height: 100%;
 
             overflow: hidden;
+
+            contain: layout paint;
         }
 
 
@@ -377,6 +378,8 @@
             transition:
                 opacity 0.35s ease,
                 box-shadow 0.2s ease;
+
+            contain: layout paint;
         }
 
 
@@ -436,6 +439,8 @@
             border-radius: 2px;
 
             user-select: none;
+
+            image-rendering: auto;
         }
 
 
@@ -626,6 +631,8 @@
                 transform 0.35s ease,
                 opacity 0.35s ease,
                 box-shadow 0.2s ease;
+
+            contain: layout paint;
         }
 
 
@@ -709,6 +716,11 @@
         }
 
 
+        .mobile-card.previous {
+            z-index: 95;
+        }
+
+
         .mobile-card.hidden-card {
             opacity: 0;
 
@@ -726,6 +738,50 @@
             box-shadow:
                 0 28px 70px
                 rgba(0, 0, 0, 0.7);
+        }
+
+
+        /* =================================================
+           MOBILE IMAGE LOADING
+        ================================================= */
+
+        .mobile-image-loading {
+            position: absolute;
+
+            left: 50%;
+            top: 40%;
+
+            transform:
+                translate(-50%, -50%);
+
+            width: 28px;
+            height: 28px;
+
+            border:
+                2px solid
+                rgba(20, 25, 40, 0.12);
+
+            border-top-color:
+                rgba(20, 25, 40, 0.55);
+
+            border-radius: 50%;
+
+            animation:
+                imageSpin
+                0.8s linear infinite;
+
+            pointer-events: none;
+        }
+
+
+        @keyframes imageSpin {
+
+            to {
+                transform:
+                    translate(-50%, -50%)
+                    rotate(360deg);
+            }
+
         }
 
 
@@ -903,6 +959,27 @@
             box-shadow:
                 0 25px 80px
                 rgba(0, 0, 0, 0.8);
+        }
+
+
+        .fullscreen-loading {
+            position: absolute;
+
+            width: 38px;
+            height: 38px;
+
+            border:
+                3px solid
+                rgba(255, 255, 255, 0.15);
+
+            border-top-color:
+                white;
+
+            border-radius: 50%;
+
+            animation:
+                spin
+                0.8s linear infinite;
         }
 
 
@@ -1755,6 +1832,45 @@
 
 
         /* =================================================
+           PERFORMANCE SETTINGS
+        ================================================= */
+
+        /*
+         * These are deliberately smaller than the original
+         * image dimensions because these images are only
+         * being displayed inside the collage.
+         */
+
+        const DESKTOP_IMAGE_WIDTH = 520;
+
+        const DESKTOP_IMAGE_HEIGHT = 440;
+
+        const MOBILE_IMAGE_WIDTH = 650;
+
+        const MOBILE_IMAGE_HEIGHT = 820;
+
+        const IMAGE_QUALITY = 72;
+
+
+        /*
+         * Cache signed URLs so the same image doesn't
+         * require another request.
+         */
+
+        const imageURLCache =
+            new Map();
+
+
+        /*
+         * Prevent duplicate URL requests if an image
+         * is currently being requested.
+         */
+
+        const imageURLRequests =
+            new Map();
+
+
+        /* =================================================
            STATE
         ================================================= */
 
@@ -1767,6 +1883,8 @@
         let mobileIndex = 0;
 
         let mobileCards = [];
+
+        let mobileCardData = [];
 
         let desktopDragging = false;
 
@@ -1852,9 +1970,7 @@
         ];
 
 
-        function getAnniversaryCaption(
-            index
-        ) {
+        function getAnniversaryCaption(index) {
 
             return anniversaryCaptions[
                 index %
@@ -1973,12 +2089,6 @@
         const loginButton =
             document.getElementById(
                 "loginButton"
-            );
-
-
-        const signupButton =
-            document.getElementById(
-                "signupButton"
             );
 
 
@@ -2123,91 +2233,6 @@
 
 
         /* =================================================
-           SIGN UP
-        ================================================= */
-
-        async function signup() {
-
-            const email =
-                emailInput.value.trim();
-
-
-            const password =
-                passwordInput.value;
-
-
-            if (!email || !password) {
-
-                authError.textContent =
-                    "Please enter an email and password.";
-
-                return;
-
-            }
-
-
-            if (password.length < 6) {
-
-                authError.textContent =
-                    "Password must be at least 6 characters.";
-
-                return;
-
-            }
-
-
-            authError.textContent = "";
-
-            showLoading(
-                "Creating your account..."
-            );
-
-
-            const {
-                data,
-                error
-            } =
-                await supabaseClient.auth
-                    .signUp({
-                        email,
-                        password
-                    });
-
-
-            hideLoading();
-
-
-            if (error) {
-
-                authError.textContent =
-                    error.message;
-
-                return;
-
-            }
-
-
-            if (
-                data.user &&
-                !data.session
-            ) {
-
-                authError.textContent =
-                    "Account created. Check your email to confirm your account.";
-
-                return;
-
-            }
-
-
-            closeAuthModal();
-
-            await initializeApplication();
-
-        }
-
-
-        /* =================================================
            CLEAR MEMORIES
         ================================================= */
 
@@ -2218,6 +2243,8 @@
             memoryCanvas.innerHTML = "";
 
             mobileCards = [];
+
+            mobileCardData = [];
 
             mobileIndex = 0;
 
@@ -2249,6 +2276,7 @@
             currentUser = null;
 
             currentFolder = null;
+
 
             clearMemories(true);
 
@@ -2572,37 +2600,167 @@
 
 
         /* =================================================
-           SIGNED URL
+           IMAGE URL CACHE KEY
+        ================================================= */
+
+        function getImageCacheKey(
+            fileName,
+            width,
+            height
+        ) {
+
+            return [
+                currentUser.id,
+                currentFolder,
+                fileName,
+                width,
+                height
+            ].join("|");
+
+        }
+
+
+        /* =================================================
+           CREATE SIGNED IMAGE URL
         ================================================= */
 
         async function createImageURL(
-            fileName
+            fileName,
+            width = 0,
+            height = 0
         ) {
 
             const path =
                 `${currentUser.id}/${currentFolder}/${fileName}`;
 
 
-            const {
-                data,
-                error
-            } =
-                await supabaseClient.storage
-                    .from(STORAGE_BUCKET)
-                    .createSignedUrl(
-                        path,
-                        3600
-                    );
+            const cacheKey =
+                getImageCacheKey(
+                    fileName,
+                    width,
+                    height
+                );
 
 
-            if (error) {
+            /*
+             * Return cached URL immediately.
+             */
 
-                throw error;
+            if (
+                imageURLCache.has(
+                    cacheKey
+                )
+            ) {
+
+                return imageURLCache.get(
+                    cacheKey
+                );
 
             }
 
 
-            return data.signedUrl;
+            /*
+             * If another request for this exact
+             * image is already running, reuse it.
+             */
+
+            if (
+                imageURLRequests.has(
+                    cacheKey
+                )
+            ) {
+
+                return imageURLRequests.get(
+                    cacheKey
+                );
+
+            }
+
+
+            const request =
+                (async () => {
+
+                    const options =
+                        width > 0
+                            ? {
+                                transform: {
+                                    width,
+                                    height,
+                                    resize: "cover",
+                                    quality:
+                                        IMAGE_QUALITY
+                                }
+                            }
+                            : undefined;
+
+
+                    const {
+                        data,
+                        error
+                    } =
+                        await supabaseClient.storage
+                            .from(STORAGE_BUCKET)
+                            .createSignedUrl(
+                                path,
+                                3600,
+                                options
+                            );
+
+
+                    if (error) {
+
+                        throw error;
+
+                    }
+
+
+                    imageURLCache.set(
+                        cacheKey,
+                        data.signedUrl
+                    );
+
+
+                    return data.signedUrl;
+
+                })();
+
+
+            imageURLRequests.set(
+                cacheKey,
+                request
+            );
+
+
+            try {
+
+                return await request;
+
+            }
+
+            finally {
+
+                imageURLRequests.delete(
+                    cacheKey
+                );
+
+            }
+
+        }
+
+
+        /* =================================================
+           ORIGINAL IMAGE URL
+        ================================================= */
+
+        async function createOriginalImageURL(
+            fileName
+        ) {
+
+            return createImageURL(
+                fileName,
+                0,
+                0
+            );
 
         }
 
@@ -2753,78 +2911,49 @@
             collage
         ) {
 
-            const batchSize = 6;
+            /*
+             * Create cards immediately.
+             *
+             * We don't wait for every image URL
+             * before building the DOM.
+             */
 
-
-            for (
-                let i = 0;
-                i < images.length;
-                i += batchSize
-            ) {
-
-                const batch =
-                    images.slice(
-                        i,
-                        i + batchSize
-                    );
-
-
-                await Promise.all(
-                    batch.map(
-                        (
+            const cards =
+                images.map(
+                    (
+                        file,
+                        index
+                    ) =>
+                        createDesktopCard(
                             file,
-                            index
-                        ) =>
-                            createDesktopMemory(
-                                file,
-                                i + index,
-                                collage
-                            )
-                    )
-                );
-
-
-                loadingText.textContent =
-                    `Loading ${
-                        Math.min(
-                            i + batchSize,
-                            images.length
-                        )
-                    } / ${
-                        images.length
-                    } memories`;
-
-
-                await new Promise(
-                    resolve =>
-                        setTimeout(
-                            resolve,
-                            0
+                            index,
+                            collage
                         )
                 );
 
-            }
+
+            /*
+             * Resolve image URLs concurrently.
+             */
+
+            await Promise.all(
+                cards
+            );
 
         }
 
 
         /* =================================================
-           CREATE DESKTOP MEMORY
+           CREATE DESKTOP CARD
         ================================================= */
 
-        async function createDesktopMemory(
+        async function createDesktopCard(
             file,
             index,
             collage
         ) {
 
             try {
-
-                const imageURL =
-                    await createImageURL(
-                        file.name
-                    );
-
 
                 const card =
                     document.createElement(
@@ -2871,14 +3000,14 @@
                     );
 
 
+                /*
+                 * Placeholder image element.
+                 */
+
                 const image =
                     document.createElement(
                         "img"
                     );
-
-
-                image.src =
-                    imageURL;
 
 
                 image.alt =
@@ -2893,6 +3022,23 @@
 
                 image.decoding =
                     "async";
+
+
+                /*
+                 * Use a transformed thumbnail instead
+                 * of the original full-resolution image.
+                 */
+
+                const imageURL =
+                    await createImageURL(
+                        file.name,
+                        DESKTOP_IMAGE_WIDTH,
+                        DESKTOP_IMAGE_HEIGHT
+                    );
+
+
+                image.src =
+                    imageURL;
 
 
                 card.appendChild(
@@ -2937,7 +3083,7 @@
                         event.preventDefault();
 
                         showFullscreen(
-                            imageURL
+                            file.name
                         );
 
                     }
@@ -3201,148 +3347,55 @@
 
             mobileCards = [];
 
+            mobileCardData = [];
+
+
+            /*
+             * Important performance change:
+             *
+             * Only THREE cards exist in the DOM.
+             *
+             * We reuse these cards while the user
+             * swipes through the entire collection.
+             */
+
+            const cardCount =
+                Math.min(
+                    3,
+                    images.length
+                );
+
 
             for (
                 let i = 0;
-                i < images.length;
+                i < cardCount;
                 i++
             ) {
 
-                const file =
-                    images[i];
+                const card =
+                    createMobileCard();
 
 
-                try {
-
-                    const imageURL =
-                        await createImageURL(
-                            file.name
-                        );
+                stack.appendChild(
+                    card
+                );
 
 
-                    const card =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    card.className =
-                        "mobile-card";
-
-
-                    const image =
-                        document.createElement(
-                            "img"
-                        );
-
-
-                    image.src =
-                        imageURL;
-
-
-                    image.alt =
-                        file.name;
-
-
-                    image.loading =
-                        i < 3
-                            ? "eager"
-                            : "lazy";
-
-
-                    image.decoding =
-                        "async";
-
-
-                    card.appendChild(
-                        image
-                    );
-
-
-                    /*
-                     * Anniversary caption.
-                     */
-
-                    const caption =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    caption.className =
-                        "mobile-caption";
-
-
-                    caption.textContent =
-                        getAnniversaryCaption(
-                            i
-                        );
-
-
-                    card.appendChild(
-                        caption
-                    );
-
-
-                    card.dataset.url =
-                        imageURL;
-
-
-                    setupMobileCard(
-                        card
-                    );
-
-
-                    stack.appendChild(
-                        card
-                    );
-
-
-                    mobileCards.push(
-                        card
-                    );
-
-                }
-
-                catch (error) {
-
-                    console.error(
-                        "Unable to load:",
-                        file.name,
-                        error
-                    );
-
-                }
-
-
-                loadingText.textContent =
-                    `Loading ${
-                        i + 1
-                    } / ${
-                        images.length
-                    } memories`;
-
-
-                if (
-                    i % 4 === 3
-                ) {
-
-                    await new Promise(
-                        resolve =>
-                            setTimeout(
-                                resolve,
-                                0
-                            )
-                    );
-
-                }
+                mobileCards.push(
+                    card
+                );
 
             }
 
 
             mobileIndex = 0;
 
-            updateMobileStack();
+
+            /*
+             * Load the current image first.
+             */
+
+            await updateMobileCards();
 
 
             mobileCounter.style.display =
@@ -3351,6 +3404,474 @@
 
             mobileHint.style.display =
                 "block";
+
+        }
+
+
+        /* =================================================
+           CREATE MOBILE CARD
+        ================================================= */
+
+        function createMobileCard() {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "mobile-card";
+
+
+            const imageWrapper =
+                document.createElement(
+                    "div"
+                );
+
+
+            imageWrapper.style.position =
+                "relative";
+
+
+            const image =
+                document.createElement(
+                    "img"
+                );
+
+
+            image.alt =
+                "Memory";
+
+
+            image.decoding =
+                "async";
+
+
+            imageWrapper.appendChild(
+                image
+            );
+
+
+            const spinner =
+                document.createElement(
+                    "div"
+                );
+
+
+            spinner.className =
+                "mobile-image-loading";
+
+
+            spinner.style.display =
+                "none";
+
+
+            imageWrapper.appendChild(
+                spinner
+            );
+
+
+            card.appendChild(
+                imageWrapper
+            );
+
+
+            const caption =
+                document.createElement(
+                    "div"
+                );
+
+
+            caption.className =
+                "mobile-caption";
+
+
+            card.appendChild(
+                caption
+            );
+
+
+            setupMobileCard(
+                card
+            );
+
+
+            return card;
+
+        }
+
+
+        /* =================================================
+           GET IMAGE BY INDEX
+        ================================================= */
+
+        function getImageByIndex(
+            index
+        ) {
+
+            if (
+                images.length === 0
+            ) {
+
+                return null;
+
+            }
+
+
+            const normalized =
+                (
+                    index %
+                    images.length +
+                    images.length
+                ) %
+                images.length;
+
+
+            return images[
+                normalized
+            ];
+
+        }
+
+
+        /* =================================================
+           LOAD MOBILE CARD
+        ================================================= */
+
+        async function loadMobileCard(
+            card,
+            index,
+            position
+        ) {
+
+            const file =
+                getImageByIndex(
+                    index
+                );
+
+
+            if (!file) {
+
+                return;
+
+            }
+
+
+            const image =
+                card.querySelector(
+                    "img"
+                );
+
+
+            const caption =
+                card.querySelector(
+                    ".mobile-caption"
+                );
+
+
+            const spinner =
+                card.querySelector(
+                    ".mobile-image-loading"
+                );
+
+
+            /*
+             * Keep track of which image this card
+             * currently represents.
+             */
+
+            card.dataset.index =
+                String(index);
+
+
+            card.dataset.fileName =
+                file.name;
+
+
+            caption.textContent =
+                getAnniversaryCaption(
+                    index
+                );
+
+
+            /*
+             * Show loading indicator only if
+             * the image hasn't already been loaded.
+             */
+
+            spinner.style.display =
+                "block";
+
+
+            try {
+
+                const imageURL =
+                    await createImageURL(
+                        file.name,
+                        MOBILE_IMAGE_WIDTH,
+                        MOBILE_IMAGE_HEIGHT
+                    );
+
+
+                /*
+                 * Prevent an old asynchronous request
+                 * from overwriting a reused card.
+                 */
+
+                if (
+                    card.dataset.fileName !==
+                    file.name
+                ) {
+
+                    return;
+
+                }
+
+
+                image.src =
+                    imageURL;
+
+
+                image.alt =
+                    file.name;
+
+
+                image.onload =
+                    () => {
+
+                        spinner.style.display =
+                            "none";
+
+                    };
+
+
+                image.onerror =
+                    () => {
+
+                        spinner.style.display =
+                            "none";
+
+                    };
+
+
+                /*
+                 * Store the filename instead of
+                 * storing a potentially large number
+                 * of URLs in the DOM.
+                 */
+
+                card.dataset.url =
+                    imageURL;
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Unable to load mobile image:",
+                    file.name,
+                    error
+                );
+
+
+                spinner.style.display =
+                    "none";
+
+            }
+
+        }
+
+
+        /* =================================================
+           UPDATE MOBILE CARDS
+        ================================================= */
+
+        async function updateMobileCards() {
+
+            if (
+                images.length === 0 ||
+                mobileCards.length === 0
+            ) {
+
+                return;
+
+            }
+
+
+            /*
+             * Current card
+             */
+
+            const currentCard =
+                mobileCards[0];
+
+
+            /*
+             * Next card
+             */
+
+            const nextCard =
+                mobileCards[1];
+
+
+            /*
+             * Third card
+             */
+
+            const thirdCard =
+                mobileCards[2];
+
+
+            /*
+             * Current
+             */
+
+            currentCard.className =
+                "mobile-card active";
+
+
+            /*
+             * Next
+             */
+
+            if (
+                nextCard &&
+                images.length > 1
+            ) {
+
+                nextCard.className =
+                    "mobile-card next";
+
+            }
+
+
+            /*
+             * Third
+             */
+
+            if (
+                thirdCard &&
+                images.length > 2
+            ) {
+
+                thirdCard.className =
+                    "mobile-card next-two";
+
+            }
+
+
+            /*
+             * Load visible images concurrently.
+             */
+
+            const requests = [];
+
+
+            requests.push(
+                loadMobileCard(
+                    currentCard,
+                    mobileIndex,
+                    0
+                )
+            );
+
+
+            if (
+                nextCard &&
+                images.length > 1
+            ) {
+
+                requests.push(
+                    loadMobileCard(
+                        nextCard,
+                        mobileIndex + 1,
+                        1
+                    )
+                );
+
+            }
+
+
+            if (
+                thirdCard &&
+                images.length > 2
+            ) {
+
+                requests.push(
+                    loadMobileCard(
+                        thirdCard,
+                        mobileIndex + 2,
+                        2
+                    )
+                );
+
+            }
+
+
+            await Promise.all(
+                requests
+            );
+
+
+            mobileCounter.textContent =
+                `${mobileIndex + 1} / ${images.length}`;
+
+
+            if (
+                mobileIndex !== 0
+            ) {
+
+                mobileHint.classList.add(
+                    "hidden"
+                );
+
+            }
+
+
+            /*
+             * Preload the next image URL.
+             *
+             * It is cached, so when the user reaches
+             * it there is no need to request the
+             * signed URL again.
+             */
+
+            const preloadIndexes = [
+
+                mobileIndex + 3,
+
+                mobileIndex - 1
+
+            ];
+
+
+            preloadIndexes.forEach(
+                index => {
+
+                    const file =
+                        getImageByIndex(
+                            index
+                        );
+
+
+                    if (!file) {
+
+                        return;
+
+                    }
+
+
+                    createImageURL(
+                        file.name,
+                        MOBILE_IMAGE_WIDTH,
+                        MOBILE_IMAGE_HEIGHT
+                    ).catch(
+                        () => {}
+                    );
+
+                }
+            );
 
         }
 
@@ -3370,8 +3891,6 @@
             let currentX = 0;
 
             let moved = false;
-
-            let horizontalSwipe = false;
 
 
             card.addEventListener(
@@ -3402,10 +3921,6 @@
 
 
                     moved =
-                        false;
-
-
-                    horizontalSwipe =
                         false;
 
 
@@ -3461,9 +3976,6 @@
                         Math.abs(currentX) >
                         Math.abs(currentY)
                     ) {
-
-                        horizontalSwipe =
-                            true;
 
                         event.preventDefault();
 
@@ -3536,9 +4048,17 @@
 
                     if (!moved) {
 
-                        showFullscreen(
-                            card.dataset.url
-                        );
+                        const fileName =
+                            card.dataset.fileName;
+
+
+                        if (fileName) {
+
+                            showFullscreen(
+                                fileName
+                            );
+
+                        }
 
                     }
 
@@ -3571,11 +4091,12 @@
            SWIPE TO NEXT
         ================================================= */
 
-        function swipeToNext(
+        async function swipeToNext(
             direction
         ) {
 
             if (
+                images.length === 0 ||
                 mobileCards.length === 0
             ) {
 
@@ -3585,9 +4106,7 @@
 
 
             const currentCard =
-                mobileCards[
-                    mobileIndex
-                ];
+                mobileCards[0];
 
 
             const distance =
@@ -3623,207 +4142,105 @@
                 "0";
 
 
-            setTimeout(
-                () => {
-
-                    currentCard.style.display =
-                        "none";
-
-
-                    /*
-                     * Left = next.
-                     * Right = previous.
-                     */
-
-                    if (
-                        direction === "left"
-                    ) {
-
-                        mobileIndex++;
-
-                    }
-
-                    else {
-
-                        mobileIndex--;
-
-                    }
-
-
-                    /*
-                     * Loop around.
-                     */
-
-                    if (
-                        mobileIndex >=
-                        mobileCards.length
-                    ) {
-
-                        mobileIndex = 0;
-
-                    }
-
-
-                    if (
-                        mobileIndex < 0
-                    ) {
-
-                        mobileIndex =
-                            mobileCards.length - 1;
-
-                    }
-
-
-                    mobileCards.forEach(
-                        card => {
-
-                            card.style.display =
-                                "";
-
-                            card.style.opacity =
-                                "";
-
-                            card.style.transition =
-                                "";
-
-                            card.style.transform =
-                                "";
-
-                        }
-                    );
-
-
-                    updateMobileStack();
-
-                },
-                350
-            );
-
-        }
-
-
-        /* =================================================
-           UPDATE MOBILE STACK
-        ================================================= */
-
-        function updateMobileStack() {
-
-            if (
-                mobileCards.length === 0
-            ) {
-
-                return;
-
-            }
-
-
-            mobileCards.forEach(
-                (
-                    card,
-                    index
-                ) => {
-
-                    card.classList.remove(
-                        "active",
-                        "next",
-                        "next-two",
-                        "hidden-card"
-                    );
-
-
-                    const relative =
-                        (
-                            index -
-                            mobileIndex +
-                            mobileCards.length
-                        ) %
-                        mobileCards.length;
-
-
-                    if (
-                        relative === 0
-                    ) {
-
-                        card.classList.add(
-                            "active"
-                        );
-
-
-                        card.style.display =
-                            "";
-
-                        card.style.opacity =
-                            "1";
-
-                        card.style.transform =
-                            "";
-
-                    }
-
-                    else if (
-                        relative === 1
-                    ) {
-
-                        card.classList.add(
-                            "next"
-                        );
-
-
-                        card.style.display =
-                            "";
-
-                        card.style.opacity =
-                            "1";
-
-                    }
-
-                    else if (
-                        relative === 2
-                    ) {
-
-                        card.classList.add(
-                            "next-two"
-                        );
-
-
-                        card.style.display =
-                            "";
-
-                        card.style.opacity =
-                            "1";
-
-                    }
-
-                    else {
-
-                        card.classList.add(
-                            "hidden-card"
-                        );
-
-                    }
-
-                }
-            );
-
-
-            mobileCounter.textContent =
-                `${mobileIndex + 1} / ${mobileCards.length}`;
-
-
             /*
-             * Hide hint after the first
-             * swipe.
+             * Calculate the next index immediately.
              */
 
             if (
-                mobileIndex !== 0
+                direction === "left"
             ) {
 
-                mobileHint.classList.add(
-                    "hidden"
-                );
+                mobileIndex++;
 
             }
+
+            else {
+
+                mobileIndex--;
+
+            }
+
+
+            if (
+                mobileIndex >=
+                images.length
+            ) {
+
+                mobileIndex = 0;
+
+            }
+
+
+            if (
+                mobileIndex < 0
+            ) {
+
+                mobileIndex =
+                    images.length - 1;
+
+            }
+
+
+            /*
+             * Wait for the animation.
+             */
+
+            await new Promise(
+                resolve =>
+                    setTimeout(
+                        resolve,
+                        350
+                    )
+            );
+
+
+            /*
+             * Reuse the card that just left.
+             *
+             * Move it to the end of the three-card
+             * pool.
+             */
+
+            const recycledCard =
+                mobileCards.shift();
+
+
+            mobileCards.push(
+                recycledCard
+            );
+
+
+            recycledCard.style.transition =
+                "none";
+
+
+            recycledCard.style.opacity =
+                "0";
+
+
+            recycledCard.style.transform =
+                "";
+
+
+            /*
+             * Update the three-card window.
+             */
+
+            await updateMobileCards();
+
+
+            /*
+             * Restore recycled card.
+             */
+
+            requestAnimationFrame(
+                () => {
+
+                    recycledCard.style.opacity =
+                        "1";
+
+                }
+            );
 
         }
 
@@ -3832,8 +4249,8 @@
            FULLSCREEN
         ================================================= */
 
-        function showFullscreen(
-            imageURL
+        async function showFullscreen(
+            fileName
         ) {
 
             const existing =
@@ -3859,14 +4276,25 @@
                 "fullscreen";
 
 
+            const spinner =
+                document.createElement(
+                    "div"
+                );
+
+
+            spinner.className =
+                "fullscreen-loading";
+
+
+            overlay.appendChild(
+                spinner
+            );
+
+
             const image =
                 document.createElement(
                     "img"
                 );
-
-
-            image.src =
-                imageURL;
 
 
             image.alt =
@@ -3875,6 +4303,10 @@
 
             image.decoding =
                 "async";
+
+
+            image.style.opacity =
+                "0";
 
 
             overlay.appendChild(
@@ -3895,6 +4327,48 @@
             document.body.appendChild(
                 overlay
             );
+
+
+            try {
+
+                /*
+                 * Only now do we request the original
+                 * full-resolution image.
+                 */
+
+                const originalURL =
+                    await createOriginalImageURL(
+                        fileName
+                    );
+
+
+                image.src =
+                    originalURL;
+
+
+                image.onload =
+                    () => {
+
+                        spinner.remove();
+
+                        image.style.opacity =
+                            "1";
+
+                    };
+
+            }
+
+            catch (error) {
+
+                console.error(
+                    "Unable to load fullscreen image:",
+                    error
+                );
+
+
+                spinner.remove();
+
+            }
 
         }
 
@@ -3973,26 +4447,34 @@
 
                 try {
 
-                    for (
-                        let i = 0;
-                        i < files.length;
-                        i++
+                    /*
+                     * Upload concurrently instead of
+                     * waiting for every upload individually.
+                     *
+                     * A small concurrency limit keeps the
+                     * browser/network from being overwhelmed.
+                     */
+
+                    const validFiles =
+                        files.filter(
+                            file =>
+                                file.type.startsWith(
+                                    "image/"
+                                )
+                        );
+
+
+                    let completed =
+                        0;
+
+
+                    const concurrency =
+                        3;
+
+
+                    async function uploadFile(
+                        file
                     ) {
-
-                        const file =
-                            files[i];
-
-
-                        if (
-                            !file.type.startsWith(
-                                "image/"
-                            )
-                        ) {
-
-                            continue;
-
-                        }
-
 
                         const safeOriginalName =
                             file.name
@@ -4042,12 +4524,37 @@
                         }
 
 
+                        completed++;
+
+
                         loadingText.textContent =
                             `Uploading ${
-                                i + 1
+                                completed
                             } / ${
-                                files.length
+                                validFiles.length
                             }`;
+
+                    }
+
+
+                    for (
+                        let i = 0;
+                        i < validFiles.length;
+                        i += concurrency
+                    ) {
+
+                        const batch =
+                            validFiles.slice(
+                                i,
+                                i + concurrency
+                            );
+
+
+                        await Promise.all(
+                            batch.map(
+                                uploadFile
+                            )
+                        );
 
                     }
 
@@ -4056,6 +4563,7 @@
 
                     uploadInput.value =
                         "";
+
 
                     await loadFolders();
 
@@ -4215,12 +4723,6 @@
         );
 
 
-        signupButton.addEventListener(
-            "click",
-            signup
-        );
-
-
         /* =================================================
            ENTER TO LOGIN
         ================================================= */
@@ -4301,6 +4803,7 @@
 
         let resizeTimeout = null;
 
+
         let lastMobileState =
             window.matchMedia(
                 "(max-width: 700px)"
@@ -4327,9 +4830,9 @@
 
 
                             /*
-                             * Only rebuild when the
-                             * layout actually changes
-                             * between desktop/mobile.
+                             * Only rebuild when actually
+                             * switching between desktop
+                             * and mobile.
                              */
 
                             if (
